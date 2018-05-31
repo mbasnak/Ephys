@@ -8,11 +8,12 @@ outputcell = 'A0'; % I presume this is the channel that reads the cell's respons
 file = 'example'; % rename file!
 hyperpolsweep = 1;
 pAincrease = 20;% pA increase per sweep! (in my protocol, this varies, so I'll have to change it)
-currentonset = 5001; % point where the current pulse starts
+pAincrease2 = [20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,50,50,50,50,50,50,50]; % these are the increases in the protocol I use now
+currentonset = 5001; % point where the current pulse starts (0.5 s)
 threshold = 10; % set the threshold to define an AP
 firstcurrentinjection = -200; % value of the first current injection
 sweepfirstposcurrent = 11; % number of sweeps with neg and 0 current
-directory='\\files.med.harvard.edu\Neurobio\MICROSCOPE\Melanie\ephys\Mel\experiment\cage8\20180517\other\cell1\'; % directory you read from
+directory='D:\Doctorado\rotations\Bernardo\Ephys\Dcell1\'; % directory you read from
 contents = dir(strcat(directory,'AD0_*')); % list the files in the directory that correspond to the cell's responses
 
 % use the following lines to make sure the files are opened in order
@@ -34,38 +35,38 @@ for i = 1:length(cs); % for every response trace
     plot(response); hold on; % plot them
     X=[X;response]; % fill the empty array with a response in each row
 end
-X = X'; %transpose to matrix
-%X=X(:,[15:30]); choose sweeps if you are only analyzing a certain number
+X = X'; %transpose the matrix, so now each column has a cell's response
 title('All traces'); xlabel('Time (points)'); ylabel('Voltage (mV)');
 %% Calculate parameters
 
-currentend = 10000+currentonset-1; % Point where the current injection ends
+currentend = 10000+currentonset-1; % Point where the current injection ends (1.5 s)
+
 equalhundredpA = rdivide(100,pAincrease); % I don't know what this division is for, and the rdivide isn't necessary
+
 thresholdpersistentfiring = 0;
 
-%in case that not all sweeps shall be analyzed
-%X=X(:,1:24);
-
 %V resting membrane potential for the first trace
-Vrestingmembrane = min(X(200:(currentonset-3),1)); % Calculate Vrest (but I am injecting Ihold, so this will read about -70 mV always) for the first trace
-Vrestingmembranemean = mean(X(200:(currentonset-3),1));
+Vrestingmembrane = min(X(200:(currentonset-3),1)); % Calculate Vrest as the min between 0.2 s and 0.47 s (but I am injecting Ihold, so this will read about -70 mV always) for the first trace
+Vrestingmembranemean = mean(X(200:(currentonset-3),1)); % Caculate Vrest as the mean between 0.2 s and 0.47 s.
 Vrestingmembranelocation = find(X(1:(currentonset-3),1) == Vrestingmembrane); % find the locations before the current pulse where Vrest is worth that
-Y = X;
-while X(Vrestingmembranelocation(1)+2,1)>(Vrestingmembrane+0.11);
-    Y(Vrestingmembranelocation(1),1) = 100;
-    Vrestingmembrane = min(Y(200:(currentonset-3),1));
+Y = X; % Generate an array "Y" with the response values in "X"
+
+while X(Vrestingmembranelocation(1)+2,1)>(Vrestingmembrane+0.11); % while the V value two data points after the Vrest (min) is bigger than Vrest+0.11
+    Y(Vrestingmembranelocation(1),1) = 100; % make the V value in the Vrest location worth 100
+    Vrestingmembrane = min(Y(200:(currentonset-3),1)); % recalculate Vrest with matirx Y.
     Vrestingmembranelocation = find(Y(1:(currentonset-3),1) == Vrestingmembrane);
 end
+% I don't think this while is doing anything, or I don't understand it!
 
-% Plot first trace with resting membrane
+% Plot first trace with resting membrane...
 figure
-plot(X(:,1))
+plot(X(:,1)) % Plot the first trace
 title('first trace with resting membrane potential, sag, input resistance, rebound')
 hold on
-plot([1,(currentonset-1)],[Vrestingmembrane,Vrestingmembrane],'r','linewidth',2)
-plot([1,(currentonset-1)],[Vrestingmembranemean,Vrestingmembranemean],'g','linewidth',2)
+plot([1,(currentonset-1)],[Vrestingmembrane,Vrestingmembrane],'r','linewidth',2) % Before the current pulse, plot the calculated Vrest
+plot([1,(currentonset-1)],[Vrestingmembranemean,Vrestingmembranemean],'g','linewidth',2) % Before the current pulse, plot the calculated meanVrest
 
-% add input resistance
+% ...add input resistance
 hyperpolsteadystate = min(X((currentonset+9000):currentend,hyperpolsweep)); % Look for the steady state at the end of the response to the current injection, for the hyperpolarizing sweeps
 hyperpolsteadystatelocation = (currentonset+8999)+find(X((currentonset+9000):currentend,hyperpolsweep) == hyperpolsteadystate);
 Y=X;
@@ -78,28 +79,35 @@ inputresistance = rdivide((hyperpolsteadystate-Vrestingmembrane),firstcurrentinj
 plot([(currentonset+9000),currentend],[hyperpolsteadystate,hyperpolsteadystate],'r','linewidth',2)
 
 % Add sag
-%(The sag is a dip in the voltage. Is it always present? What ions
-%contribute to it?)
+%(The sag is a dip in the voltage. It is not always present. It is due to the Ih current, and is voltage-dependent)
 
 %rebound and depolarizing sag only proper if no EPSPs present
+%why is that?
 
-sag = (min(X(currentonset:(currentonset+5000),hyperpolsweep)));
-saglocation =(currentonset-1)+find(X(currentonset:(currentonset+5000),hyperpolsweep) == sag);
+sag = (min(X(currentonset:(currentonset+5000),hyperpolsweep))); %take the sag as the minimum value in the voltage during the pulse, for the hyperpolarizing sweeps.
+saglocation =(currentonset-1)+find(X(currentonset:(currentonset+5000),hyperpolsweep) == sag); %find the location of that minimum as the point number for the whole trace
 Y=X;
 while X(saglocation(1)+2,hyperpolsweep)>(sag+0.11);
     Y(saglocation(1),hyperpolsweep) = 100;
-    sag = min(Y(currentonset:(currentonset+5000),hyperpolsweep));
-    saglocation = (currentonset-1)+find(Y(currentonset:(currentonset+5000),hyperpolsweep) == sag);
+    minV = min(Y(currentonset:(currentonset+5000),hyperpolsweep));
+    saglocation = (currentonset-1)+find(Y(currentonset:(currentonset+5000),hyperpolsweep) == minV);
 end
 hold on
-plot(saglocation,sag,'c','marker','*','MarkerSize', 12)
-sag = hyperpolsteadystate-sag;
-if sag>0
-    sag = sag;
+plot(saglocation,minV,'c','marker','*','MarkerSize', 12)
+int_sag = (hyperpolsteadystate-sag); %calculate the sag as the difference between the steady state and the min value
+if int_sag>0 %if there is a sag (i.e., if there is a value lower than the steady state)
+    int_sag = int_sag;
 else
-    sag = 0;
+    int_sag = 0;
 end
-sag = -sag/(hyperpolsteadystate-Vrestingmembrane)*100;
+sag = int_sag/minV;
+
+%Acording to an ephys paper I found, the sag is usually calculated as the following ratio:
+% Sag ratio (dimensionless). The difference between the steady-state
+% membrane potential at the end of a 750-ms hyperpolarizing current
+% step and the most negative membrane potential at the beginning of the
+% step, divided by the most negative membrane potential, so I changed the
+% code accordingly
 
 
 % add rebound
@@ -132,6 +140,9 @@ else
     rebound = rebound-Vrestingmax;
 end
 
+
+% Why is this done only for the first trace? Shouldn't it be done for all
+% of them? Especially something Voltage-dependent like the sag?
 
 
 %% AP analysis
@@ -361,8 +372,8 @@ xlabel('Sweep number'); ylabel('Interspike interval (ms)');
 %% 
 
 % Initial freq (calculated from ISI of sweep with max freq)
-[row,col]=findpeaks(R(currentonset:currentend,sweepwithmaxfreq));
-initialISI=rdivide((col(2)-col(1)),10)
+[row,col] = findpeaks(R(currentonset:currentend,sweepwithmaxfreq));
+initialISI = rdivide((col(2)-col(1)),10)
 figure
 plot(X(:,sweepwithmaxfreq))
 title('initial/middle/final ISI')
@@ -478,9 +489,9 @@ plot(X(:,1),'k');axis([0 length(X) (max(X(:,sweepwithmaxfreq))-200) (max(X(:,swe
 xlabel('Time (ms)');
 print('-depsc',strcat(directory,'figure.eps'))
 
-save(strcat(directory,'spikecount'),'spikecount');
+%save(strcat(directory,'spikecount'),'spikecount');
 
 %output to excel table
 %A={file,Vrestingmembranemean,inputresistance,sag,rebound,APthreshold,APamplitude,APhalfwidth,AHPamplitude,AHPtimetopeak,firstAHPamplitude,DAPdepolamplitude,DAPhyperpolamplitude,spikenumberfirsttrain,maxfreq,sweepwithmaxfreq,initialISI,middleISI,finalISI,totaladaptation,latency,ratiofirstsecondISI,sweepnumberwithfirstAP,rheobase,currentformaxfreq};
 A={file,Vrestingmembranemean,inputresistance,sag,rebound,APthreshold,APamplitude,APhalfwidth,spikenumberfirsttrain,maxfreq,sweepwithmaxfreq,initialISI,middleISI,finalISI,totaladaptation,latency,ratiofirstsecondISI,sweepnumberwithfirstAP,rheobase,currentformaxfreq};
-xlswrite(strcat(directory,'table.xls'),A,1);
+%xlswrite(strcat(directory,'table.xls'),A,1);

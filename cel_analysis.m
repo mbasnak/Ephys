@@ -3,7 +3,7 @@
 clear all;close all;
 
 % choose directory of cell to be analyzed
-CellPath = uigetdir('\\files.med.harvard.edu\Neurobio\MICROSCOPE\Melanie\ephys\Mel','Choose folder')
+CellPath = uigetdir('Z:\MICROSCOPE\Melanie\ephys\Mel\experiment\everyCell\','Choose folder')
 
 % set the current path to that directory
 path = cd(CellPath);
@@ -45,7 +45,8 @@ correctedPulses = cellfun(@(x) x*2000,pulses,'un',0);
 
 %% plot the raw results, all together
 
-figure, set(gcf,'units','points','position',[100,100,1000,600]);
+%figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
+figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
 subplot(2,1,1)
 hold on
 cellfun(@plot,correctedPulses)
@@ -57,7 +58,7 @@ cellfun(@plot,responses)
 title('Responses'), ylabel('Voltage (mV)'); xlabel('Time (ms)');
 
 saveas(gcf,'AllTraces.png');
-saveas(gcf,'AllTraces.svg');
+%saveas(gcf,'AllTraces.svg');
 
 %% Find peaks (APs) in the individual responses
 
@@ -68,141 +69,24 @@ end
 
 % plot the data with the APs extracted and add or substract peaks that
 % haven't been properly identified
-% figure
-% scrsz = get(0, 'ScreenSize');
-% hf=figure(200); clf; set(gcf,'units','points','position',scrsz);
+% (agregar corrector de picos de Vero)
+%     
+% for ii =1:size(responses,2)
+% %figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
+% figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
+% subplot(2,1,1)
+% plot(correctedPulses{ii},'k')
+% title('Current pulses'), ylabel('Current (pA)');
+% ylim([-400,1000]);
+% 
+% subplot(2,1,2)
+% plot(responses{ii},'k')
 % hold on
-% 
-%     for count = 1:size (peakLoc,2)
-%         NumTrial = count;
-%         clf;
-%         set(gcf,'Toolbar','figure','name',[ 'Trial ' num2str(count) ]);
-%         
-%         okMax = 0;
-%         DelMax = 0;
-%         AddMax = 0;
-% 
-%         bla = linspace(1,5,50000);
-% %         indStart=Indices(NumeroCangrejo,count).indStart;
-% %         indEnd=Indices(NumeroCangrejo,count).indEnd;
-%         subplot(5,1,1:4)
-%         hold on
-%         plot(responses{count},'color','b','linewidth',2);
-%         shg
-%         hold on
-%         locs = peakLoc{count};
-%         mag = peakMag{count};
-%         plot(peakLoc{count},peakMag{count},'ro');
-%         
-% %         for j=1:length(peakLoc)
-% %             text(bla(locs(j)),responses{1,j},num2str(j),'FontSize',18)
-% %         end
-% 
-%          %%%%%%%%%%%%
-%         uicontrol('Style','pushbutton','String','Add peaks','CallBack','AddMax = 1;','Position',[scrsz(3)*1/10 scrsz(4)*1/10 120 60]);
-%         uicontrol('Style','pushbutton','String','Delete peaks','CallBack','DelMax = 1;','Position',[scrsz(3)*5/10 scrsz(4)*1/10 120 60]);
-%         uicontrol('Style','pushbutton','String','Done!','CallBack','okMax = 1','Position',[scrsz(3)*9/10 scrsz(4)*1/10 120 60]);
-% 
-%         while okMax == 0
-%             figure(200)
-%             title({'Waiting input',[' trial: ' num2str(count)]} )
-%             
-%              if DelMax ==1
-%                 title('Del Max')
-%                 inputTitle = char('Do you want to delete any peak?');
-%                 prompt = {'Which ones? (write the numbers separated with a space):'};
-%                 answer = inputdlg(prompt, inputTitle, 1);
-%                 mov_to_add= str2num(answer{1});
-%                 peakLoc{count}(mov_to_add)=[];
-%                 
-%                 DelMax=2;
-%                 
-%                 elseif DelMax == 2
-%                 subplot(5,1,1:4)
-%                 cla
-%                 hold on
-%                 
-%                 plot(responses{count},'color','b','linewidth',2);
-%                 shg
-%                 hold on
-%                 peakLoc = peakLoc{count};
-%                 plot(peakLoc{count},peakMag{count},'ro');
-% %                 for j=1:length(peakLoc)
-% %                     text(bla(locs(j)+indStart-1),datosECGAll{NumeroCangrejo,NumTrial}(locs(j)+indStart-1),num2str(j),'FontSize',18)
-% %                 end
-%                 DelMax = 0;
-%             end
-%                 if AddMax == 1
-%                 disp('hola mundo')
-%                 clear dcm_obj sacc_add2
-%                 dcm_obj = datacursormode(hf);
-%                 sacc_add2 =  getCursorInfo(dcm_obj);
-%                 ind_add=zeros(1, length(sacc_add2));
-%                 for j=1:length(sacc_add2);
-%                     ind_add(j)=sacc_add2(j).DataIndex(1);
-%                 end
-%                 if ind_add
-%                     ind_add=sort(ind_add);
-%                     startx=ind_add;
-%                     AddMax=0;
-%                     sacc_add.startx=(startx);
-%                     [ind_start]=unique(sort([(locs) sacc_add.startx]));
-%                     peakLoc{count}=ind_start;
-%                     clear vector
-%                 end
-%                 AddMax=2;
-%             elseif AddMax==2
-%                 subplot(5,1,1:4)
-%                 cla
-%                 hold on
-%                 plot(responses{count},'color','b','linewidth',2);
-%                 shg
-%                 hold on
-%                 locs=peakLoc{count};
-%                 plot(peakLoc{count},peakMag{count},'ro');
-% %                 for j=1:length(locs)
-% %                     text(bla(locs(j)+indStart-1),datosECGAll{NumeroCangrejo,NumTrial}(locs(j)+indStart-1),num2str(j),'FontSize',18)
-% %                 end
-%                 AddMax=0;
-%             end
-%             drawnow
-%         end
-%         
-%         if ~exist('temp','dir')
-%             mkdir temp
-%         end
-%         fileTemp=['./temp/temp' date num2str(round(rem(now,1))) 'trial' num2str(count)];
-%         save(fileTemp)
-%     end
-%     
-%     close all
-%     
-% pathNameSaeDatos = pwd; filesave='CheckedAPs.mat';
-% if ~exist(fullfile(pathNameSaeDatos, filesave),'file')   
-%     save(fullfile(pathNameSaeDatos, filesave))
-% else    
-%     inputTitle = filesave;
-%     prompt = {['Data file already exists, change name (add.mat)']};
-%     answer = inputdlg(prompt, inputTitle, 1);
-%     newfilesave= answer{1};
-%     save(fullfile(pathNameSaeDatos, newfilesave))
+% plot(peakLoc{ii},peakMag{ii},'ro')
+% title('Responses'), ylabel('Voltage (mV)'); xlabel('Time (s)');
+% ylim([-120,60]);
+% shg
 % end
-    
-for ii =1:size(responses,2)
-figure,  set(gcf,'units','points','position',[100,100,1000,600]);
-subplot(2,1,1)
-plot(correctedPulses{ii},'k')
-title('Current pulses'), ylabel('Current (pA)');
-ylim([-400,1000]);
-
-subplot(2,1,2)
-plot(responses{ii},'k')
-hold on
-plot(peakLoc{ii},peakMag{ii},'ro')
-title('Responses'), ylabel('Voltage (mV)'); xlabel('Time (s)');
-ylim([-120,60]);
-shg
-end
 
 %% AP analysis
 
@@ -216,20 +100,20 @@ threshold = 10; % define a threshold to look for AP
 myData = cell2mat(responses);
 myData2 = reshape(myData,[30000,length(pulses)]);
 [row,col] = find(myData2(pulseStart:pulseEnd,:)>threshold); %look for every trace the points above threshold
-sweepwithfirstAP = myData2(:,col(1)); % take the first column in X (= first sweep) with points above threshold
+sweepwithfirstAP = myData2(:,col(1)); % take the first column in myData2 (= first sweep) with points above threshold
 sweepnumberwithfirstAP = col(1); % which waveform number is the first with an AP?
+sweepnumberwithfirstAP_stimOnly = sweepwithfirstAP(pulseStart:pulseEnd);
 
 % APthreshold
-[row,col,v] = find(sweepwithfirstAP(pulseStart:pulseEnd)>threshold); % in the first sweep with an AP, find the points above threshold
-AP = row+(pulseStart-1);
-thresholdsearch  = sweepwithfirstAP((AP(1)-15):AP(1));
-distance = (thresholdsearch(2:16)-thresholdsearch(1:15));
-[row] = find(distance>3);
-thresholdlocation=AP(1)-(16-row(1));
-APthreshold = sweepwithfirstAP(thresholdlocation);
+% Calculated as the maximum of the second derivative
+firstDerFirstAP = diff(sweepnumberwithfirstAP_stimOnly); %first derivative
+secDerFirstAP = diff(firstDerFirstAP); %second derivative
+[row,col] = max(secDerFirstAP); %look for the max of the second derivative
+APthreshold = sweepnumberwithfirstAP_stimOnly(col); %the trheshold is the value that the Voltage takes in the position of the max of the second derivative
+thresholdlocation = col + pulseStart - 1;
 
 % latency to first AP
-latency = rdivide((AP(1)-(pulseStart-1)),10);
+latency = col/10; %the latency is the position of the threshold since the pulse started, divided by 10 to get it in ms.
 
 % AP amplitude
 APamplitude = minus(max(sweepwithfirstAP(thresholdlocation:thresholdlocation+10)),APthreshold);
@@ -257,169 +141,182 @@ APhalfwidth = rdivide(APhalfwidth,10);
     %% IV curve
 
 for ii = 1:size(responses,2)
-    pulseV(ii) = mode(round(responses{1,ii}(pulseStart:pulseEnd)));
+    pulseV(ii) = mode(round(responses{1,ii}(pulseStart:pulseEnd))); %calculate the voltage of the plateau, using the mode of the round value of V during the pulse
+    pulseVmed(ii) = median(responses{1,ii}(pulseStart:pulseEnd)); %calculate it using the median instead
     currents(ii) = correctedPulses{1,ii}(10300);
-    DifCurrents(ii) = currents(ii) - correctedPulses{1,ii}(300); %add an extra correction, given that they start shifted from zero sometimes.
-%make it read the difference instead.   
-    firingRate(ii) = size(peakLoc{ii},2);
+    DifCurrents(ii) = currents(ii) - correctedPulses{1,ii}(300); %add an extra correction, given that they start shifted from zero sometimes. Make it read the difference instead.   
+    APnum(ii) = size(peakLoc{ii},2);
 end
 
-
-figure,  set(gcf,'units','points','position',[100,100,1000,600]);
-subplot(1,2,1)
-plot(DifCurrents,pulseV,'ro')
+%figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
+figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
+plot(pulseV,DifCurrents,'ro')
 hold on
-plot(DifCurrents,pulseV,'r')
-title('IV curve');
-xlim([-200 450]); ylim([-150 50]);
-ylabel('V (mV)');xlabel('Current (pA)');
+plot(pulseV,DifCurrents,'r')
+%plot(pulseVmed,DifCurrents,'b') they are really similar, so I'm using the mode
+title('IV curve'); ylim([-250 600]); xlim([-120 0]);
+xlabel('V (mV)');ylabel('Current (pA)');
+hline = refline([0 0]);
+hline.Color = 'k';
 
-%If curve
+saveas(gcf,'IVcurve.png');
 
-subplot(1,2,2);
-plot(DifCurrents,firingRate,'b^')
-hold on
-plot(DifCurrents,firingRate,'b')
-title('If curve');
-xlim([0 450]); ylim([0 max(firingRate)+1]);
-ylabel('Firing rate (spikes/s)');xlabel('Current (pA)');
 
-saveas(gcf,'IVandIFcurves.png');
-saveas(gcf,'IVandIFcurves.svg');
+%% Hyperpolarization parameters
+% Calculate the hypolarized steady state and the sag
+
+%1) Identify hyperpolarizing pulses...
+[~,pulseIdentity] = find(DifCurrents <0);
+
+for i = 1:length(pulseIdentity) % For every hyperpolarizing pulse
+    
+%2) The hyperpolarized steady state
+hyperpolsteadystate(i) = median(responses{1,i}((pulseStart+8000):pulseEnd)); % Look for the steady state at the end of the response to the current injection, for the hyperpolarizing sweeps
+hyperpolsteadystatelocation{i} = (pulseStart+8999)+find(responses{1,i}((pulseStart+9000):pulseEnd) == hyperpolsteadystate(i));
+
+% figure,
+% plot(responses{1,i}) % plot the responses
+% hold on
+% plot([(pulseStart+8000),pulseEnd],[hyperpolsteadystate(i),hyperpolsteadystate(i)],'r','linewidth',2) % Overlay the steady state
+
+%3) The sag
+minV(i) = (min(responses{1,i}(pulseStart:(pulseStart+5000)))); %take the sag as the minimum value in the voltage during the pulse, for the hyperpolarizing sweeps.
+saglocation{i} =(pulseStart-1)+find(responses{1,i}(pulseStart:(pulseStart+5000)) == minV(i)); %find the location of that minimum as the point number for the whole trace
+
+% hold on
+% plot(saglocation{i},minV(i),'c','marker','*','MarkerSize', 12)
+int_sag(i) = (hyperpolsteadystate(i)-minV(i)); %calculate the sag as the difference between the steady state and the min value
+if int_sag(i)>0 %if there is a sag (i.e., if there is a value lower than the steady state)
+    int_sag(i) = int_sag(i);
+else
+    int_sag(i) = 0;
+end
+sag(i) = int_sag(i)/minV(i);
+end
+
+for i = 1:length(pulseIdentity)
+hyperpolV(i) = mode(round(responses{1,i}(pulseStart:pulseEnd))); %Subset responses to hyperpolarizing pulses
+end
+figure,
+plot(hyperpolV,sag,'ro'); hold on
+plot(hyperpolV,sag,'r');
+title('Sag ratio as a function of voltage');
+xlabel('Voltage response (mV)'); ylabel('Sag ratio');
+
+saveas(gcf,'Sagratio.png');
 
 %% first sweep with AP
 
 % AP number in sweep with first AP
-spikenumberfirsttrain = firingRate(sweepnumberwithfirstAP);
+spikenumberfirsttrain = APnum(sweepnumberwithfirstAP);
 
 %rheobase
 rheobase = DifCurrents(sweepnumberwithfirstAP);
-%% maximal frequency
-maxfreq = max(firingRate);
+%% Firing rate
 
-% sweep with max. freq.
-sweepwithmaxfreq = find(firingRate == maxfreq);
+% 1) Absolute number of APs during the 1 s stimulation
+maxAPnum = max(APnum);
+
+% sweep with max. APnum
+sweepwithmaxfreq = find(APnum == maxAPnum);
 sweepwithmaxfreq = sweepwithmaxfreq(1);
-figure;
-plot(firingRate,'o')
-title('Spikes per sweep indicating sweep with max. freq.');
-xlabel('Sweep number'); ylabel('Number of APs');
-xlim([0 length(responses(1,:))]); ylim([0 max(firingRate)+1]);
+
+% 2) Instantaneous firing frequency
+InstFR = cell(1,length(peakLoc));
+two_peaks = cell(1,length(peakLoc));
+nonEmpty = (~cellfun(@isempty,peakLoc));
+
+for i = 1:length(peakLoc)
+    if nonEmpty(i) == 0 || numel(peakLoc{1,i}) == 1
+        two_peaks{1,i} = 0;
+        InstFR{1,i} = 0;
+    else
+        two_peaks{1,i} = peakLoc{i}(2) - peakLoc{i}(1);
+        InstFR{1,i} = 2/(two_peaks{1,i}/10000);
+    end
+end
+
+maxInstFR = max(cell2mat(InstFR));
+
+% 3) Frequency taken between first and last spike of the train
+totFR = cell(1,length(peakLoc));
+all_peaks = cell(1,length(peakLoc));
+
+for i = 1:length(peakLoc)
+    if nonEmpty(i) == 0 || numel(peakLoc{1,i}) == 1
+        all_peaks{1,i} = 0;
+        totFR{1,i} = 0;
+    else
+        all_peaks{1,i} = peakLoc{i}(APnum(1,i)) - peakLoc{i}(1);
+        totFR{1,i} = APnum(1,i)/(all_peaks{1,i}/10000);
+    end
+end
+
+maxtotFR = max(cell2mat(totFR));
+
+%% If curves with the three different frequencies
+
+%figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
+figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
+subplot(1,3,1);
+plot(DifCurrents,APnum,'b^')
 hold on
-plot(sweepwithmaxfreq,firingRate(sweepwithmaxfreq),'r','marker','*')
+plot(DifCurrents,APnum,'b')
+title('If curve');
+xlim([0 600]); ylim([0 max(APnum)+1]);
+ylabel('Total AP number');xlabel('Current (pA)');
 
-%% RC check
-
-	% where the RC check occurs
-	checkPulseSize = -200; % how big is the RC check
-	checkPulseStart = 25000; % when does it start
-	checkPulseEnd = 26000; % when does it end
-
-    acqRate = 10; % points per ms
-
-%     	if isempty(checkPulseStart)
-% 					notPulse=[SR(1, pulseStart-10) SR(pulseEnd+150, acqLen-1)]; 
-% 					rPeak=NaN;
-% 					rEnd=NaN;
-% 					tau=NaN;
-% 				else
-% 					if checkPulseStart>pulseStart % the RC check comes late
-% 						notPulse=[SR(myData2,1, pulseStart-10) SR(myData2,pulseEnd+150, checkPulseStart-10)]; 
-% 					else
-% 						notPulse=[SR(myData2,1, checkPulseStart-1) SR(myData2,checkPulseEnd+50, pulseStart-10) SR(myData2,pulseEnd+150, acqLen-1)]; 
-% 					end
-% 					[rPeak, rEnd, tau]=csCurrentClampPulseAnalysis(SR(myData2,checkPulseStart, checkPulseEnd)- mean(notPulse), acqRate, checkPulseSize);
-% 				end
-                
-    
-    % Check this out to calculate the Rm
-    
-%     for i = 1:length(responses)
-%     notPulse1{i} = [responses{1,i}(1:pulseStart-10)];
-%     notPulse2{i} = [responses{1,i}(pulseEnd+150:end-1)];
-%     end
-%     
-%     restMean = mean(notPulse);
-%     pulseRm = 1000*(pulseV-restMean)/currents;
-
-    for i = 1:length(responses)
-[rPeak(i), rEnd(i), tau(i)] = csCurrentClampPulseAnalysis(mode(round(responses{1,i}(checkPulseStart:checkPulseEnd))), acqRate, checkPulseSize);   
-    end 
-
-    figure,
-a4rPeak = subplot(1, 3, 1);
-			title(a4rPeak, ['RC R']);
-			xlabel(a4rPeak,'acq'); 
-			ylabel(a4rPeak,'MO');
-            ylim([0 700]);
-			hold on
-			a4rPulse=subplot(1, 3, 2);
-			title(a4rPulse, ['Pulse R']);
-			xlabel(a4rPulse, 'acq') 
-			hold on
-			a4tau=subplot(1, 3, 3);
-			title(a4tau, ['RC Tau']);
-			xlabel(a4tau,'acq') 
-			ylabel(a4tau,'ms')
-			hold on
-            
-				plot(a4rPeak, rPeak, 'go')
-				plot(a4rPeak, rEnd, 'gx')
-				%plot(a4rPulse, goodTraces, newCell.pulseRm(goodTraces), 'go')		
-				plot(a4tau, tau, 'go')               
-    
-%% save image with sweep with first AP and sweep with max freq
-
-figure,  set(gcf,'units','points','position',[100,100,1000,600]);
-subplot(2,1,1)
-plot(myData2(:,sweepwithmaxfreq),'k');axis([0 length(myData2) (max(myData2(:,sweepwithmaxfreq))-150) (max(myData2(:,sweepwithmaxfreq))+10)])
-ylabel('Voltage (mV)');
+subplot(1,3,2);
+plot(DifCurrents,cell2mat(InstFR),'b^')
 hold on
-text(17000,-20,strcat('Max AP number = ', num2str(maxfreq)),'FontSize',12);
-title('Sweep with max AP number','Fontsize',12,'FontName','Calibri'); ylabel('Voltage (mV)');
-subplot(2,1,2)
+plot(DifCurrents,cell2mat(InstFR),'b')
+title('If curve');
+xlim([0 600]); ylim([0 maxInstFR+1]);
+ylabel('Instantenous firing rate (spikes/s)');xlabel('Current (pA)');
+
+subplot(1,3,3);
+plot(DifCurrents,cell2mat(totFR),'b^')
 hold on
-text(17000,-20,strcat('Rheobase = ', num2str(round(rheobase)),' pA'),'FontSize',12);
-plot(myData2(:,sweepnumberwithfirstAP),'k');axis([0 length(myData2) (max(myData2(:,sweepwithmaxfreq))-150) (max(myData2(:,sweepwithmaxfreq))+10)])
-ylabel('Voltage (mV)');
-title('Sweep with first AP','Fontsize',12,'FontName','Calibri'); ylabel('Voltage (mV)');
+plot(DifCurrents,cell2mat(totFR),'b')
+title('If curve');
+xlim([0 600]); ylim([0 maxtotFR+1]);
+ylabel('Total firing rate (spikes/s)');xlabel('Current (pA)');
 
-saveas(gcf,'MaxFreqAndRheobase.png');
-saveas(gcf,'MaxFreqAndRheobase.png');
+saveas(gcf,'IFcurves.png');
 
-    
-%% Vrest
+%% Resting properties
 
-% Given that I am using the Ihold, it doesn't make sense to read the Vrest,
-% but rather we open a window to input the value of Vrest without holding
-% current, and/or the value of injected current
+% Trying to automate this
+% 1) Load the spreadsheet with all the info
+[num,txt,parameters] = xlsread('Z:\MICROSCOPE\Melanie\ephys\Mel\experiment\everyCell\summary.xlsx',1);
 
-prompt = {'Enter Vrest:','Enter Ihold:'};
-title = 'Cell resting properties';
-dims = [1 35];
-answer = inputdlg(prompt,title,dims);
+% 2) Identify the row corresponding to the cell in question
+cellID = CellPath(54:end); %save the cell name from the path
+cellName = strcmp(parameters,cellID); %find the cell with the cell name in the parameters array
+cellPar = cell(1,size(parameters,2));
+for i = 1:size(parameters,2)
+cellPar{1,i} = parameters{find(cellName,1),i};%save the row corresponding to that cell
+end
 
-Vrest = answer{1};
-Ihold = answer{2};
-
-%% Quality control
-
-% 	% values for QC inclusion of individual sweeps
-% 	maxRestSD=100;
-%  	minRm=0;
-%  	maxRm=1000;
-% 	maxVm=2000;
-% 	minVm=-2000;
-
-
-%% Save output to excel table
-A={'output',Vrest,Ihold,APthreshold,APamplitude,APhalfwidth,spikenumberfirsttrain,maxfreq,sweepwithmaxfreq,latency,sweepnumberwithfirstAP,rheobase};
-xlswrite(strcat(CellPath,'table.xls'),A,1);
+% 3) Save the parameters
+Date = cellPar{1,2};
+Cage = cellPar{1,3};
+mouseID = cellPar{1,4};
+Rin = cellPar{1,5};
+Rs = cellPar{1,6};
+Cm = cellPar{1,7};
+Vrest = cellPar{1,8};
+Ihold = cellPar{1,9};
+Temp = cellPar{1,10};
+Rsfin = cellPar{1,11};
+Rinfin = cellPar{1,12};
+Cmfin = cellPar{1,13};
+Vrestfin = cellPar{1,14};
 
 %% Save outputs to struct
 
 % Generate struct
-cellProp = struct('rheobase',rheobase,'pulses',correctedPulses,'responses',responses,'peakLoc',peakLoc,'peakMag',peakMag,'voltage',pulseV,'currents',DifCurrents,'firingRate',firingRate,'Vrest',Vrest,'Ihold',Ihold,'APthreshold',APthreshold,'Latency', latency, 'APamplitude',APamplitude, 'APhalfwidth',APhalfwidth, 'maxfreq',maxfreq);
+cellProp = struct('InstFR',InstFR,'totFR',totFR,'sag',sag,'Date', Date, 'Cage', Cage, 'mouseID', mouseID, 'Rs', Rs,'Temp',Temp,'Rsfin',Rsfin,'Rinfind',Rinfin,'Cmfin',Cmfin,'Vrestfin',Vrestfin,'maxtotFR',maxtotFR,'maxInstFR',maxInstFR,'rheobase',rheobase,'pulses',correctedPulses,'responses',responses,'peakLoc',peakLoc,'peakMag',peakMag,'voltage',pulseV,'currents',DifCurrents,'APnum',APnum,'Cm',Cm,'Rin',Rin,'Vrest',Vrest,'Ihold',Ihold,'APthreshold',APthreshold,'Latency', latency, 'APamplitude',APamplitude, 'APhalfwidth',APhalfwidth, 'maxAPnum',maxAPnum);
 
 % Save in the cell's folder
 save('cellProp');
