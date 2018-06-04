@@ -3,7 +3,7 @@
 clear all;close all;
 
 % choose directory of cell to be analyzed
-CellPath = uigetdir('Z:\MICROSCOPE\Melanie\ephys\Mel\experiment\everyCell\','Choose folder')
+CellPath = uigetdir() 
 
 % set the current path to that directory
 path = cd(CellPath);
@@ -18,12 +18,13 @@ for ii = 1:numel(files) %for each file
    fields{ii} = files(ii).name; %save the name of the files 
 end
 
-[cs,index] = sort_nat(fields);
+[OrderedFileNames,index] = sort_nat(fields); %order the files by name in ascending order
 
 for ii = 1:numel(files) %for each file
-   fields{ii} = cs{ii}(1:end-4); %substract the .mat from the name
-   vars{ii} = load(cs{ii}); %in each cell of the array 'vars' load the struct with the data from each file
-   data{ii} = vars{ii,1}.(fields{ii}).data; %in a new cell array called 'data', store in each cell the info corresponding to the waveforms in each file. 
+   vars{ii} = load(OrderedFileNames{ii}); %in each cell of the array 'vars' load the struct with the data from each file
+   fieldsID{ii} = OrderedFileNames{ii}(1:end-4); %substract the .mat from the name
+   %fieldsID{ii} = regexprep(OrderedFileNames{ii},'.mat',''); %substract the .mat from the name to use later on for reading the struct names
+   data{ii} = vars{ii,1}.(fieldsID{ii}).data; %in a new cell array called 'data', store in each cell the info corresponding to the waveforms in each file. 
 end
 
 
@@ -96,7 +97,7 @@ pulseStart = 5000; % when in the protocol is our pulse starting (in points)
 pulseEnd = 15000; % when is it ending
 threshold = 10; % define a threshold to look for AP
 
-% find trace with first AP
+% Find trace with first AP
 myData = cell2mat(responses);
 myData2 = reshape(myData,[30000,length(pulses)]);
 [row,col] = find(myData2(pulseStart:pulseEnd,:)>threshold); %look for every trace the points above threshold
@@ -104,34 +105,77 @@ sweepwithfirstAP = myData2(:,col(1)); % take the first column in myData2 (= firs
 sweepnumberwithfirstAP = col(1); % which waveform number is the first with an AP?
 sweepnumberwithfirstAP_stimOnly = sweepwithfirstAP(pulseStart:pulseEnd);
 
+% Plot it and add stuff to it as the analysis progresses
+figure, plot(sweepnumberwithfirstAP_stimOnly)
+xlabel('Time (points)');ylabel('Voltage (mV)'); xlim([0,2000]);
+title('First trace with an AP (stimulation time only)');
+hold on
+
 % APthreshold
 % Calculated as the maximum of the second derivative
 firstDerFirstAP = diff(sweepnumberwithfirstAP_stimOnly); %first derivative
 secDerFirstAP = diff(firstDerFirstAP); %second derivative
 [row,col] = max(secDerFirstAP); %look for the max of the second derivative
-APthreshold = sweepnumberwithfirstAP_stimOnly(col); %the trheshold is the value that the Voltage takes in the position of the max of the second derivative
+APthreshold = sweepnumberwithfirstAP_stimOnly(col); %the threshold is the value that the Voltage takes in the position of the max of the second derivative
 thresholdlocation = col + pulseStart - 1;
+plot((thresholdlocation + pulseStart -1),APthreshold,'*')
 
 % latency to first AP
 latency = col/10; %the latency is the position of the threshold since the pulse started, divided by 10 to get it in ms.
+plot([0,latency*10],[APthreshold,APthreshold]);
 
 % AP amplitude
 APamplitude = minus(max(sweepwithfirstAP(thresholdlocation:thresholdlocation+10)),APthreshold);
 [row] = find(round(sweepwithfirstAP(pulseStart:pulseEnd)) == round(APamplitude+APthreshold));
 APlocation = row(1)+(pulseStart-1);
+plot([APlocation-pulseStart+1,APlocation-pulseStart+1],[-80,APamplitude]);
+
+% AP through
+%(minimum value of the membrane potential between the peak and the next AP)
+if numel(peakLoc{1,sweepnumberwithfirstAP})>1 % if there are at least two peaks, take the minimum between them
+    APthrough = min(sweepwithfirstAP(APlocation:peakLoc{1,sweepnumberwithfirstAP}(2)));
+else % otherwise take the minimum in the next few ms
+    APthrough = min(sweepwithfirstAP(APlocation:APlocation+40));
+end
+[APthroughLocation] = find(sweepwithfirstAP == APthrough);
+APthroughLocation = APthroughLocation(1);
+
+plot(APthroughLocation-pulseStart+1,APthrough,'bo')
+
 
 % AP 1/2 width
-[row] = find(sweepwithfirstAP(thresholdlocation:(thresholdlocation+10))>(rdivide(APamplitude,2)+APthreshold));
-P2 = (row(1))+thresholdlocation-1;
-P1 = P2-1;
-[row] = find(sweepwithfirstAP(APlocation:APlocation+20)<(rdivide(APamplitude,2)+APthreshold));
-P4 = row(1)+APlocation-1;
-P3 = P4-1;
-yAPhalfwidth = APthreshold+rdivide(APamplitude,2);
-APhalfwidth = (rdivide((yAPhalfwidth-sweepwithfirstAP(P3)),(sweepwithfirstAP(P4)-sweepwithfirstAP(P3)))+P3)-(rdivide((yAPhalfwidth-sweepwithfirstAP(P1)),(sweepwithfirstAP(P2)-sweepwithfirstAP(P1)))+P1);
-xvectorforplot = [((rdivide((yAPhalfwidth-sweepwithfirstAP(P1)),(sweepwithfirstAP(P2)-sweepwithfirstAP(P1)))+P1)-thresholdlocation+11),((rdivide((yAPhalfwidth-sweepwithfirstAP(P3)),(sweepwithfirstAP(P4)-sweepwithfirstAP(P3)))+P3)-thresholdlocation+11)];
-yvectorforplot = [yAPhalfwidth,yAPhalfwidth];
-APhalfwidth = rdivide(APhalfwidth,10);
+% [row] = find(sweepwithfirstAP(thresholdlocation:(thresholdlocation+10))>(rdivide(APamplitude,2)+APthreshold));
+% P2 = (row(1))+thresholdlocation-1;
+% P1 = P2-1;
+% [row] = find(sweepwithfirstAP(APlocation:APlocation+20)<(rdivide(APamplitude,2)+APthreshold));
+% P4 = row(1)+APlocation-1;
+% P3 = P4-1;
+% yAPhalfwidth = APthreshold+rdivide(APamplitude,2);
+% APhalfwidth = (rdivide((yAPhalfwidth-sweepwithfirstAP(P3)),(sweepwithfirstAP(P4)-sweepwithfirstAP(P3)))+P3)-(rdivide((yAPhalfwidth-sweepwithfirstAP(P1)),(sweepwithfirstAP(P2)-sweepwithfirstAP(P1)))+P1);
+% xvectorforplot = [((rdivide((yAPhalfwidth-sweepwithfirstAP(P1)),(sweepwithfirstAP(P2)-sweepwithfirstAP(P1)))+P1)-thresholdlocation+11),((rdivide((yAPhalfwidth-sweepwithfirstAP(P3)),(sweepwithfirstAP(P4)-sweepwithfirstAP(P3)))+P3)-thresholdlocation+11)];
+% yvectorforplot = [yAPhalfwidth,yAPhalfwidth];
+% APhalfwidth = rdivide(APhalfwidth,10);
+
+% The half-width of the AP is the width (in time units) of the trace at
+% half height. Here we considered the spike amplitude from the threshold,
+% so we will take the half height as the half amplitude (but we might want
+% to recompute things).
+
+% 1) Calculate the half-height (or in this case half-amplitude) of the
+% action potential
+halfAmplitude = APthreshold + APamplitude/2;
+
+% 2) Look for the closest points at either side of the peak that match that height
+[c halfAmpInLocation] = min(abs(sweepwithfirstAP(APlocation-20:APlocation)-halfAmplitude));
+[d halfAmpEndLocation] = min(abs(sweepwithfirstAP(APlocation:APlocation+50)-halfAmplitude));
+
+% 3) Define the width as the time interval between them
+APhalfwidth = (halfAmpInLocation + halfAmpEndLocation)/10;
+plot([APlocation-pulseStart+1-(20-halfAmpInLocation),APlocation-pulseStart+1+halfAmpEndLocation],[halfAmplitude,halfAmplitude])
+
+%It seems as though I don't have enough data points as I would like.
+% maybe I can do some sort of fit?
+
 
 %AHP
    

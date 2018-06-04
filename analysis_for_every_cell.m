@@ -3,7 +3,7 @@
 close all; clear all;
 
 % choose directory of cell to be analyzed
-CellPath = uigetdir('\\files.med.harvard.edu\Neurobio\MICROSCOPE\Melanie\ephys\Mel','Choose folder')
+CellPath = uigetdir()
 
 % set the current path to that directory
 path = cd(CellPath);
@@ -44,9 +44,7 @@ for i = 1:length(Data)
     voltage(:,i) = Data{1,i}.voltage;
     current(:,i) = Data{1,i}.currents;
     APnum(:,i) = Data{1,i}.APnum;
-
 end
-
 
 for i = 1:length(Data)
     for j = 1:size(current,1)
@@ -107,6 +105,10 @@ ylabel('Total firing rate (spikes/s)');xlabel('Current (pA)');
 regroupedV = reshape(voltage,[size(voltage,1)*size(voltage,2),1]);
 regroupedC = reshape(current,[size(current,1)*size(current,2),1]);
 
+% Export the regrouped current and voltage data as a csv to make plots in R
+xlswrite('Voltages.xls',regroupedV);
+xlswrite('Currents.xls',regroupedC);
+
 % 2) Generate a char vector with information about the group
     % a) Check to see how many D and S subfolders we have
     names = dir;
@@ -121,6 +123,8 @@ regroupedC = reshape(current,[size(current,1)*size(current,2),1]);
 groups = cell(size(regroupedV,1),1);
 groups(1:(size(voltage,1)*dominantNum),1) = {'Dominant'};
 groups((size(voltage,1)*dominantNum)+1:end,1) = {'Subordinate'};
+
+xlswrite('groups.xls',groups);
 
 % Plot IV curves sorted by dominance
 %figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
@@ -140,6 +144,10 @@ regroupedAPnum = reshape(APnum,[size(APnum,1)*size(APnum,2),1]);
 regroupedInstFR = reshape(InstFR,[size(InstFR,1)*size(InstFR,2),1]);
 regroupedtotFR = reshape(totFR,[size(totFR,1)*size(totFR,2),1]);
 
+xlswrite('regroupedAPnum.xls',regroupedAPnum);
+xlswrite('regroupedInstFR.xls',regroupedInstFR);
+xlswrite('regroupedtotFR.xls',regroupedtotFR);
+
 figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
 subplot(1,3,1)
 gscatter(regroupedC,regroupedAPnum,groups)
@@ -148,6 +156,8 @@ plot(current,APnum)
 title('If curve');
 xlim([0 600]);
 ylabel('AP num (mV)');xlabel('Current (pA)');
+hLeg = legend('example');
+set(hLeg,'visible','off');
 
 subplot(1,3,2)
 gscatter(regroupedC,regroupedInstFR,groups)
@@ -156,6 +166,8 @@ plot(current,InstFR)
 title('If curve');
 xlim([0 600]);
 ylabel('Instantaneous firing rate (spikes/s)');xlabel('Current (pA)');
+hLeg = legend('example');
+set(hLeg,'visible','off');
 
 subplot(1,3,3)
 gscatter(regroupedC,regroupedtotFR,groups)
@@ -164,6 +176,8 @@ plot(current,totFR)
 title('If curve');
 xlim([0 600]);
 ylabel('Total firing rate (spikes/s)');xlabel('Current (pA)');
+hLeg = legend('example');
+set(hLeg,'visible','off');
 
 %% Plot IV and IF mean curves by dominance status
 
@@ -191,6 +205,8 @@ gscatter(regroupedMeanV,regroupedMeanC,status)
 title('IV curve');
 ylim([-200 600]); xlim([-150 50]);
 xlabel('V (mV)');ylabel('Current (pA)');
+hold on
+plot([-150,50],[0,0],'k');
 
 %% IF curves
 
@@ -249,6 +265,10 @@ cellType = cell(size(Data,2),1);
 cellType(1:dominantNum,1) = {'Dominant'};
 cellType(dominantNum+1:end,1) = {'Subordinate'};
 
+xlswrite('Vrest.xls',Vrest);
+xlswrite('Ihold.xls',Ihold);
+xlswrite('cellType.xls',cellType);
+
 %figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
 figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
 subplot(1,2,1)
@@ -270,8 +290,39 @@ for i = 1:length(Data)
     APamplitude(:,i) = Data{1,i}.APamplitude;
     APhalfwidth(:,i) = Data{1,i}.APhalfwidth;
     maxtotFR(:,i) = Data{1,i}(1).maxtotFR;
+    APthrough(:,i) = Data{1,i}(1).APthrough;
 end
 
+APproperties = [maxInstFR;APthreshold;latency;APamplitude;APhalfwidth;maxtotFR;APthrough];
+xlswrite('APproperties.xls',APproperties);
+
+% Analyze the distributions
+% Right now I am looking at the maxInstFR, etc,... but I should probably
+% look at global values?
+figure, 
+subplot(1,2,1), hist(maxInstFR(1:15))
+h = findobj(gca,'Type','patch');
+h.FaceColor = [1 0 0];
+xlim([0 500]),ylim([0 5]);title('maxInstFR');
+subplot(1,2,2), hist(maxInstFR(16:28))
+xlim([0 500]),ylim([0 5]);title('maxInstFR');
+
+figure, 
+subplot(1,2,1), hist(APamplitude(1:15))
+h = findobj(gca,'Type','patch');
+h.FaceColor = [1 0 0];
+xlim([50 100]),ylim([0 6]);title('APamplitude');
+subplot(1,2,2), hist(APamplitude(16:28))
+xlim([50 100]),ylim([0 6]);title('APamplitude');
+
+figure, 
+subplot(1,2,1), hist(latency(1:15))
+h = findobj(gca,'Type','patch');
+h.FaceColor = [1 0 0];
+xlim([50 450]),ylim([0 5]);title('Latency distributions');
+subplot(1,2,2), hist(latency(16:28))
+xlim([50 450]),ylim([0 5]);
+title('Latency distributions');
 
 % Make boxplots
 
@@ -289,7 +340,7 @@ ylabel('Voltage (mV)'); title('AP amplitude');
 subplot(2,3,4)
 boxplot(APhalfwidth,cellType)
 ylabel('Time (ms)'); title('AP halfwidth');
-ylim([-2 2]);
+ylim([-2 3]);
 subplot(2,3,5)
 boxplot(maxtotFR,cellType)
 ylabel('Spikes/s'); title('max total firing rate');
@@ -311,13 +362,18 @@ for i = 1:length(Data)
     Cage(:,i) = Data{1,i}(1).Cage;
     mouseID(:,i) = Data{1,i}(1).mouseID;
     Date(:,i) = Data{1,i}(1).Date;
+    Rin(:,i) = Data{1,i}(1).Rin;
+	Cm(:,i) = Data{1,i}(1).Cm;
 end
 
-Parameters = horzcat(maxtotFR',APamplitude',APthreshold',Ihold',latency',Vrest',Cage',mouseID',Date');
+resistance = [Rin;Cm];
+xlswrite('Resistance.xls',resistance);
+
+Parameters = horzcat(maxtotFR',APamplitude',APthreshold',Ihold',latency',Vrest');
 
 % Make vector with variable names
 
-Variables = char('maxtotFR','APamplitude','APthreshold','Ihold','latency','Vrest','Cage','mouseID','Date');
+Variables = char('maxtotFR','APamplitude','APthreshold','latency','Vrest');
 
 % 2) Run PCA analysis
 
