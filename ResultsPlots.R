@@ -2,9 +2,9 @@
 
 library(readxl)
 
+# Generate a vector with the current pattern
 pulsePattern <- c(seq(-180,200, 20) , seq(250, 550, 50))
 currents <- rep(pulsePattern,28)
-
 
 #Load the data###########################################
 
@@ -17,7 +17,7 @@ voltages <- read_excel("D:/Doctorado/rotations/Bernardo/Ephys/everyCell/Voltages
 # status <- read_excel("Z:/MICROSCOPE/Melanie/ephys/Mel/experiment/everyCell/groups.xls", 
 #                        col_names = FALSE)
 
-status <- read_excel("D:/Doctorado/rotations/Bernardo/Ephys/everyCell/groups.xls", 
+Status <- read_excel("D:/Doctorado/rotations/Bernardo/Ephys/everyCell/groups.xls", 
                      col_names = FALSE)
 
 regroupedAPnum <- read_excel("D:/Doctorado/rotations/Bernardo/Ephys/everyCell/regroupedAPnum.xls", 
@@ -32,73 +32,101 @@ regroupedtotFR <- read_excel("D:/Doctorado/rotations/Bernardo/Ephys/everyCell/re
 
 cellName = sort(rep(1:28,27))
 
-Data = cbind(currents,voltages,status,cellName,regroupedAPnum,regroupedInstFR,regroupedtotFR)
-
-colnames(Data) <- c('currents','voltages','status','cellName','APnum','InstFR','totFR')
+# Save all of the data into a data.frame
+Data = cbind(currents,voltages,Status,cellName,regroupedAPnum,regroupedInstFR,regroupedtotFR)
+colnames(Data) <- c('currents','voltages','Status','cellName','APnum','InstFR','totFR')
 
 
 library(ggplot2)
 
-#IV curves######################################################################33
+#IV curves######################################################################
 
-ggplot(Data, aes(voltages, currents, group=cellName, colour = status)) + 
-  geom_point() + geom_line()
+### individual curves, colored by dominance status ###
+
+ggplot(Data, aes(voltages, currents, group=cellName, colour = Status)) +
+  geom_point() + geom_line() + 
+  scale_fill_brewer(palette='Set1') +
+  labs(x = "Volatge (mV)", y = "Current (pA)",title='Individual IV curves')+ 
+  theme(plot.title = element_text(hjust = 0.5))+ theme(legend.title = element_text(face="bold"))
+
+ggplot(Data, aes(currents, voltages, group=cellName, colour = Status)) +
+  geom_point() + geom_line() + 
+  scale_fill_brewer(palette='Set1') +
+  labs(y = "Volatge (mV)", x = "Current (pA)",title='Individual IV curves')+ 
+  theme(plot.title = element_text(hjust = 0.5)) + theme(legend.title = element_text(face="bold"))+
+  geom_vline(xintercept=0)
+
+
 
 library(dplyr)     
 
-summaryStatsVolt = Data %>% group_by(status, currents) %>% summarise(n = n(), 
+# Save the mean and sem of the voltage
+summaryStatsVolt = Data %>% group_by(Status, currents) %>% summarise(n = n(), 
                                                                  mean_volt = mean(voltages),
                                                                  sem = sd(voltages, na.rm=T)/sqrt(n),
                                                                  ymin = mean_volt-sem,
                                                                  ymax = mean_volt+sem)
 
-#mean IV curves
-ggplot(summaryStatsVolt, aes(currents, mean_volt,colour=status)) + geom_line(aes(y=mean_volt), lwd=2)+
-  geom_ribbon(aes(ymin=ymin, ymax=ymax,fill=status), alpha=0.4)
+# mean IV curves
+ggplot(summaryStatsVolt, aes(currents, mean_volt,colour=Status)) + geom_line(aes(y=mean_volt), lwd=2)+
+  geom_ribbon(aes(ymin=ymin, ymax=ymax,fill=Status), alpha=0.4) +
+  scale_fill_brewer(palette='Set1') +
+  labs(y = "Volatge (mV)", x = "Current (pA)",title='Mean IV curves')+ 
+  theme(plot.title = element_text(hjust = 0.5)) + theme(legend.title = element_text(face="bold"))+
+  geom_vline(xintercept=0)
 
 
-#############IF curves##############################
+############# IF curves ##############################
 
 library(cowplot)
 
-plotAPnum <- ggplot(Data, aes(currents, APnum,  group=cellName, colour = status)) + 
-  geom_point() + geom_line() + theme(legend.position="none")
+plotAPnum <- ggplot(Data, aes(currents, APnum,  group=cellName, colour = Status)) + 
+  geom_point() + geom_line() + theme(legend.position="none") +
+  scale_fill_brewer(palette='Set1') + labs(x= 'Current (pA)',y='AP number')
 
-plotInstFR <- ggplot(Data, aes(currents, InstFR,  group=cellName, colour = status)) + 
-  geom_point() + geom_line() + theme(legend.position="none")
+plotInstFR <- ggplot(Data, aes(currents, InstFR,  group=cellName, colour = Status)) + 
+  geom_point() + geom_line() + theme(legend.position="none") +
+  scale_fill_brewer(palette='Set1') + labs(x= 'Current (pA)',y='Instantaneous firing rate (Hz)')
 
-plottotFR <- ggplot(Data, aes(currents, totFR,  group=cellName, colour = status)) + 
-  geom_point() + geom_line() + theme(legend.position="none")
+plottotFR <- ggplot(Data, aes(currents, totFR,  group=cellName, colour = Status)) + 
+  geom_point() + geom_line() + theme(legend.position="none") +
+  scale_fill_brewer(palette='Set1') + labs(x= 'Current (pA)',y='Total firing rate (Hz)')
 
 plot_grid(plotAPnum, plotInstFR, plottotFR, labels = c("A", "B", "C"),ncol = 3, align = "v")
 
-
-summaryStatsAPnum = Data %>% group_by(status, currents) %>% summarise(n = n(), 
+# Save the summary stats of the different firing rates
+summaryStatsAPnum = Data %>% group_by(Status, currents) %>% summarise(n = n(), 
                                                                      mean_APnum = mean(APnum),
                                                                      sem = sd(APnum, na.rm=T)/sqrt(n),
                                                                      ymin = mean_APnum-sem,
                                                                      ymax = mean_APnum+sem)
 
-summaryStatsInstFR = Data %>% group_by(status, currents) %>% summarise(n = n(), 
+summaryStatsInstFR = Data %>% group_by(Status, currents) %>% summarise(n = n(), 
                                                                       mean_InstFR = mean(InstFR),
                                                                       sem = sd(InstFR, na.rm=T)/sqrt(n),
                                                                       ymin = mean_InstFR-sem,
                                                                       ymax = mean_InstFR+sem)
 
-summaryStatstotFR = Data %>% group_by(status, currents) %>% summarise(n = n(), 
+summaryStatstotFR = Data %>% group_by(Status, currents) %>% summarise(n = n(), 
                                                                       mean_totFR = mean(totFR),
                                                                       sem = sd(totFR, na.rm=T)/sqrt(n),
                                                                       ymin = mean_totFR-sem,
                                                                       ymax = mean_totFR+sem)
 
-plot.meanAPnum <- ggplot(summaryStatsAPnum, aes(currents, mean_APnum,colour=status)) + geom_line(aes(y=mean_APnum), lwd=2)+
-  geom_ribbon(aes(ymin=ymin, ymax=ymax,fill=status), alpha=0.4) + theme(legend.position='none')
+plot.meanAPnum <- ggplot(summaryStatsAPnum, aes(currents, mean_APnum,colour=Status)) + geom_line(aes(y=mean_APnum), lwd=2)+
+  geom_ribbon(aes(ymin=ymin, ymax=ymax,fill=Status), alpha=0.4) +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='Current (pA)', y='AP number')
 
-plot.meanInstFR <- ggplot(summaryStatsInstFR, aes(currents, mean_InstFR,colour=status)) + geom_line(aes(y=mean_InstFR), lwd=2)+
-  geom_ribbon(aes(ymin=ymin, ymax=ymax,fill=status), alpha=0.4) + theme(legend.position='none')
+plot.meanInstFR <- ggplot(summaryStatsInstFR, aes(currents, mean_InstFR,colour=Status)) + geom_line(aes(y=mean_InstFR), lwd=2)+
+  geom_ribbon(aes(ymin=ymin, ymax=ymax,fill=Status), alpha=0.4) +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='Current (pA)', y='Instantaneous firing rate (Hz)')
 
-plot.meantotFR <- ggplot(summaryStatstotFR, aes(currents, mean_totFR,colour=status)) + geom_line(aes(y=mean_totFR), lwd=2)+
-  geom_ribbon(aes(ymin=ymin, ymax=ymax,fill=status), alpha=0.4) + theme(legend.position='none')
+plot.meantotFR <- ggplot(summaryStatstotFR, aes(currents, mean_totFR,colour=Status)) + geom_line(aes(y=mean_totFR), lwd=2)+
+  geom_ribbon(aes(ymin=ymin, ymax=ymax,fill=Status), alpha=0.4) +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='Current (pA)', y='Total firing rate (Hz)')
 
 
 plot_grid(plot.meanAPnum, plot.meanInstFR, plot.meantotFR, labels = c("A", "B", "C"),ncol = 3, align = "v")
@@ -118,9 +146,17 @@ Ihold <- t(Ihold)
 restingProp <- cbind(Vrest,Ihold,cellType)
 colnames(restingProp) <- c('Vrest','Ihold','cellType')
 
-plot.Vrest <- ggplot(restingProp, aes(cellType,Vrest,fill=cellType)) + geom_boxplot() + geom_jitter() + theme(legend.position='none')
+plot.Vrest <- ggplot(restingProp, aes(cellType,Vrest,fill=cellType)) + 
+  geom_boxplot() + scale_fill_brewer(palette='Set1') +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.85, fill='gray40') +
+  theme(legend.position='none') +
+  labs(x='',y='Resting membrane potential (mV)')
 
-plot.Ihold <- ggplot(restingProp, aes(cellType,Ihold,fill=cellType)) + geom_boxplot() + geom_jitter() + theme(legend.position='none')
+plot.Ihold <- ggplot(restingProp, aes(cellType,Ihold,fill=cellType)) + 
+  geom_boxplot() + scale_fill_brewer(palette='Set1') +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.85, fill='gray40') +
+  theme(legend.position='none') +
+  labs(x='',y='Holding current (pA)')
 
 plot_grid(plot.Vrest, plot.Ihold, labels = c("A", "B"),ncol = 2, align = "v")
 
@@ -133,16 +169,59 @@ APproperties <- t(APproperties)
 
 APprop <- cbind(APproperties, cellType)
 
-colnames(APprop) <- c('maxInstFR','APthreshold','latency','APamplitude','APhalfwidth','maxtotFR','APthrough','cellType')
+colnames(APprop) <- c('maxInstFR','APthreshold','latency','APamplitude','APhalfwidth','maxtotFR','APthrough','sag','cellType')
 
-plot.maxInstFR <- ggplot(APprop, aes(cellType,maxInstFR,fill=cellType)) + geom_boxplot() + geom_jitter() + theme(legend.position='none')
-plot.APthreshold <- ggplot(APprop, aes(cellType,APthreshold,fill=cellType)) + geom_boxplot() + geom_jitter() + theme(legend.position='none')
-plot.latency <- ggplot(APprop, aes(cellType,latency,fill=cellType)) + geom_boxplot() + geom_jitter() + theme(legend.position='none')
-plot.APamplitude <- ggplot(APprop, aes(cellType,APamplitude,fill=cellType)) + geom_boxplot() + geom_jitter() + theme(legend.position='none')
-plot.APhalfwidth <- ggplot(APprop, aes(cellType,APhalfwidth,fill=cellType)) + geom_boxplot() + geom_jitter() + theme(legend.position='none')
-plot.maxtotFR <- ggplot(APprop, aes(cellType,maxtotFR,fill=cellType)) + geom_boxplot() + geom_jitter() + theme(legend.position='none')
+plot.maxInstFR <- ggplot(APprop, aes(cellType,maxInstFR,fill=cellType)) +
+  geom_boxplot() + 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.85, fill='gray40') +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='',y='Max. instantaneous FR (Hz)')
 
-plot_grid(plot.maxInstFR, plot.APthreshold, plot.latency, plot.APamplitude, plot.APhalfwidth, plot.maxtotFR, labels = c("A", "B", "C", "D", "E", "F"),ncol = 3)
+plot.APthreshold <- ggplot(APprop, aes(cellType,APthreshold,fill=cellType)) +
+  geom_boxplot() + 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.85, fill='gray40') +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='',y='AP threshold (mV)')
+
+plot.latency <- ggplot(APprop, aes(cellType,latency,fill=cellType)) +
+  geom_boxplot() + 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.85, fill='gray40') +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='',y='Latency to first AP (ms)')
+
+plot.APamplitude <- ggplot(APprop, aes(cellType,APamplitude,fill=cellType)) +
+  geom_boxplot() + 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.85, fill='gray40') +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='',y='AP amplitude (mV)')
+
+plot.APhalfwidth <- ggplot(APprop, aes(cellType,APhalfwidth,fill=cellType)) +
+  geom_boxplot() + 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.85, fill='gray40') +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='',y='AP halfwidth (ms)')
+
+plot.maxtotFR <- ggplot(APprop, aes(cellType,maxtotFR,fill=cellType)) +
+  geom_boxplot() + 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.85, fill='gray40') +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='',y='Max. total FR (Hz)')
+
+plot.APthrough <- ggplot(APprop, aes(cellType,APthrough,fill=cellType)) +
+  geom_boxplot() + 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.85, fill='gray40') +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='',y='AP through (mV)')
+
+plot.sag <- ggplot(APprop, aes(cellType,sag,fill=cellType)) +
+  geom_boxplot() +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.85, fill='gray40') +
+  theme(legend.position='none') + scale_fill_brewer(palette='Set1') +
+  labs(x='',y='Sag ratio for first current')
+
+plot_grid(plot.maxInstFR, plot.APthreshold, plot.latency, plot.APamplitude, 
+          plot.APhalfwidth, plot.maxtotFR, plot.APthrough, plot.sag,
+          labels = c("A", "B", "C", "D", "E", "F","G","H"),ncol = 4)
 
 
 ######################## PCA #################################
@@ -152,23 +231,20 @@ Resistance <- read_excel("D:/Doctorado/rotations/Bernardo/Ephys/everyCell/Resist
 Resistance <- as.data.frame(t(Resistance))
 colnames(Resistance) <- c('Rin','Cm')
 
-PCAvariables = cbind(APprop$maxtotFR,APprop$APamplitude,APprop$APthreshold,APprop$latency,restingProp$Vrest,Resistance$Rin,Resistance$Cm);
+PCAvariables = cbind(APprop$maxtotFR,APprop$APamplitude,APprop$APthreshold,APprop$latency,APprop$sag,restingProp$Vrest,Resistance$Rin,Resistance$Cm);
 PCAvariables <- as.data.frame(PCAvariables)
-colnames(PCAvariables) <- c('maxtotFR','APamplitude','APthreshold','latency','Vrest','Rin','Cm')
+colnames(PCAvariables) <- c('maxtotFR','APamplitude','APthreshold','latency','sag','Vrest','Rin','Cm')
 
 dominance.pca <- prcomp(PCAvariables,
                  center = TRUE,
                  scale. = TRUE)
 print(dominance.pca)
-plot(dominance.pca, type = "l")
 
 library(devtools)
-install_github("ggbiplot", "vqv")
-
 library(ggbiplot)
+
 g <- ggbiplot(dominance.pca, obs.scale = 1, var.scale = 1, 
-              groups = APprop$cellType, ellipse = TRUE )
-g <- g + scale_color_discrete(name = '')
-g <- g + theme(legend.direction = 'horizontal', 
-               legend.position = 'top')
+              groups = APprop$cellType, ellipse = TRUE, varname.size = 5)
+g <- g  + scale_colour_manual(values = c("red", "blue")) 
 print(g)
+

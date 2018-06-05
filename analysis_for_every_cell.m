@@ -4,70 +4,66 @@ close all; clear all;
 
 % choose directory of cell to be analyzed
 CellPath = uigetdir()
-
 % set the current path to that directory
 path = cd(CellPath);
 
-%% For every folder inside a day, import the struct
+%% Import the structs with relevant info from all the folders in the path
 
-% Get list of all subfolders.
+% Get list of all subfolders in the path
 allSubFolders = genpath(CellPath);
 % Parse into a cell array.
 remain = allSubFolders;
-listOfFolderNames = {};
+listOfFolderNames = {}; % Initialize an empty cell array
 while true
+    % The strtok function returns in the output "singleSubFolder" the text in 
+    % the input "remain" contained within the delimiter ";" until "remain"
+    % is empty because it has already recovered all the folder names.
 	[singleSubFolder, remain] = strtok(remain, ';');
 	if isempty(singleSubFolder)
 		break;
-	end
+    end
+    % It moves those folders into listOfFolderNames before singleSubFolder
+    % gets empty
 	listOfFolderNames = [listOfFolderNames singleSubFolder];
 end
 numberOfFolders = length(listOfFolderNames);
 
-for i= 2:length(listOfFolderNames) 
-    cellData{i-1} = load(strcat(listOfFolderNames{i}, '\cellProp.mat'));  
+cellData = {};
+for i= 2:length(listOfFolderNames) % For every folder in the path except from the one making the path ("everyCell")
+    cellData{i-1} = load(strcat(listOfFolderNames{i}, '\cellProp.mat')); % Load the file with all the relevant info into a cell array 
 end
 
-% Extract specifically the struct
+% Extract specifically the relevant struct
 for i = 1:size(cellData,2)
     Data{i} = cellData{1,i}.cellProp;
 end
-
 %% IV curves with every cell
 
 pulseStart=5000; % when in the protocol is our pulse starting (in points)
 pulseEnd=15000; % when is it ending
 
-% Extract the current pulses, neuron's voltage response and firing rates
-% from the data
+% Extract the current pulses and neuron's voltage response from the data
 for i = 1:length(Data)
     voltage(:,i) = Data{1,i}.voltage;
     current(:,i) = Data{1,i}.currents;
-    APnum(:,i) = Data{1,i}.APnum;
 end
 
+% Plot the IV curve and save it with a helper function
+plotIVcurve(voltage,current,0)
+
+%% IF curves three ways with every cell
+
+% Extract the firing rates from the data
 for i = 1:length(Data)
     for j = 1:size(current,1)
             InstFR(j,i) = Data{1,i}(j).InstFR;
             totFR(j,i) = Data{1,i}(j).totFR;
     end
+    APnum(:,i) = Data{1,i}.APnum;    
 end
 
-% Plot the IV curve
-%figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
-figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
-plot(voltage,current,'o')
-hold on
-plot(voltage,current)
-hline = refline([0 0]);
-hline.Color = 'k';
-title('IV curve');
-ylim([-200 600]); xlim([-150 50]);
-xlabel('V (mV)');ylabel('Current (pA)');
-
-saveas(gcf,'IVcurvesEveryCell.png');
-
-%% IF curves three ways with every cell
+maxInstFR = max(InstFR);
+maxtotFR = max(totFR);
 
 % Plot the IF curve
 %figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
@@ -106,8 +102,7 @@ regroupedV = reshape(voltage,[size(voltage,1)*size(voltage,2),1]);
 regroupedC = reshape(current,[size(current,1)*size(current,2),1]);
 
 % Export the regrouped current and voltage data as a csv to make plots in R
-xlswrite('Voltages.xls',regroupedV);
-xlswrite('Currents.xls',regroupedC);
+xlswrite('Voltages.xls',regroupedV); xlswrite('Currents.xls',regroupedC);
 
 % 2) Generate a char vector with information about the group
     % a) Check to see how many D and S subfolders we have
@@ -124,7 +119,7 @@ groups = cell(size(regroupedV,1),1);
 groups(1:(size(voltage,1)*dominantNum),1) = {'Dominant'};
 groups((size(voltage,1)*dominantNum)+1:end,1) = {'Subordinate'};
 
-xlswrite('groups.xls',groups);
+xlswrite('groups.xls',groups); % Export the info in a xls doc.
 
 % Plot IV curves sorted by dominance
 %figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
@@ -135,19 +130,23 @@ plot(voltage,current)
 title('IV curve');
 ylim([-200 600]); xlim([-150 50]);
 xlabel('V (mV)');ylabel('Current (pA)');
+legend('off');
 
 saveas(gcf,'IVcurveByStatus.png');
 
 %% IF curves by status
 
+% Reshape info into vectors
 regroupedAPnum = reshape(APnum,[size(APnum,1)*size(APnum,2),1]);
 regroupedInstFR = reshape(InstFR,[size(InstFR,1)*size(InstFR,2),1]);
 regroupedtotFR = reshape(totFR,[size(totFR,1)*size(totFR,2),1]);
 
+% Save xls files for plots in R
 xlswrite('regroupedAPnum.xls',regroupedAPnum);
 xlswrite('regroupedInstFR.xls',regroupedInstFR);
 xlswrite('regroupedtotFR.xls',regroupedtotFR);
 
+% Plot the IF curves by status
 figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
 subplot(1,3,1)
 gscatter(regroupedC,regroupedAPnum,groups)
@@ -181,59 +180,48 @@ set(hLeg,'visible','off');
 
 %% Plot IV and IF mean curves by dominance status
 
+% Calculate the mean current and voltage
 meanCD = mean(current(:,1:dominantNum),2);
 meanCS = mean(current(:,dominantNum+1:end),2);
-
 meanVD = mean(voltage(:,1:dominantNum),2);
 meanVS = mean(voltage(:,dominantNum+1:end),2);
-stdVD = std(voltage(:,1:dominantNum),[],2);
-stdVS = std(voltage(:,dominantNum+1:end),[],2);
 
+% Reshape the info into vectors
 regroupedMeanC = vertcat(meanCD,meanCS);
 regroupedMeanV = vertcat(meanVD,meanVS);
 
-regroupedStdV = vertcat(stdVD,stdVS);
-
+% Determine a status vector of useful size
 status = cell(size(voltage,1)*2,1);
 status(1:length(voltage),1) = {'Dominant'};
 status(length(voltage)+1:end,1) = {'Subordinate'};
 status = char(status);
 
+% Make the plots
 %figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
 figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
-gscatter(regroupedMeanV,regroupedMeanC,status)
+gscatter(regroupedMeanC,regroupedMeanV,status)
 title('IV curve');
-ylim([-200 600]); xlim([-150 50]);
-xlabel('V (mV)');ylabel('Current (pA)');
+xlim([-200 600]); ylim([-150 50]);
+ylabel('V (mV)');xlabel('Current (pA)');
 hold on
-plot([-150,50],[0,0],'k');
+plot([0,0],[-150,50],'k');
 
 %% IF curves
 
+% Calculate means and save data into useful vectors
 meanFRD = mean(APnum(:,1:dominantNum),2);
 meanFRS = mean(APnum(:,dominantNum+1:end),2);
-stdFRD = std(APnum(:,1:dominantNum),[],2);
-stdFRS = std(APnum(:,dominantNum+1:end),[],2);
-
 regroupedMeanFR = vertcat(meanFRD,meanFRS);
-regroupedStdFR = vertcat(stdFRD,stdFRS);
 
 meanInstFRD = mean(InstFR(:,1:dominantNum),2);
 meanInstFRS = mean(InstFR(:,dominantNum+1:end),2);
-stdInstFRD = std(InstFR(:,1:dominantNum),[],2);
-stdInstFRS = std(InstFR(:,dominantNum+1:end),[],2);
-
 regroupedMeanInstFR = vertcat(meanInstFRD,meanInstFRS);
-regroupedStdInstFR = vertcat(stdInstFRD,stdInstFRS);
 
 meantotFRD = mean(totFR(:,1:dominantNum),2);
 meantotFRS = mean(totFR(:,dominantNum+1:end),2);
-stdtotFRD = std(totFR(:,1:dominantNum),[],2);
-stdtotFRS = std(totFR(:,dominantNum+1:end),[],2);
-
 regroupedMeantotFR = vertcat(meantotFRD,meantotFRS);
-regroupedStdtotFR = vertcat(stdtotFRD,stdtotFRS);
 
+% Make the plots
 %figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
 figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
 subplot(1,3,1)
@@ -291,41 +279,14 @@ for i = 1:length(Data)
     APhalfwidth(:,i) = Data{1,i}.APhalfwidth;
     maxtotFR(:,i) = Data{1,i}(1).maxtotFR;
     APthrough(:,i) = Data{1,i}(1).APthrough;
+    sag(:,i) = Data{1,i}(1).sag(1);
 end
 
-APproperties = [maxInstFR;APthreshold;latency;APamplitude;APhalfwidth;maxtotFR;APthrough];
+% Save the parameters into an xls doc.
+APproperties = [maxInstFR;APthreshold;latency;APamplitude;APhalfwidth;maxtotFR;APthrough;sag];
 xlswrite('APproperties.xls',APproperties);
 
-% Analyze the distributions
-% Right now I am looking at the maxInstFR, etc,... but I should probably
-% look at global values?
-figure, 
-subplot(1,2,1), hist(maxInstFR(1:15))
-h = findobj(gca,'Type','patch');
-h.FaceColor = [1 0 0];
-xlim([0 500]),ylim([0 5]);title('maxInstFR');
-subplot(1,2,2), hist(maxInstFR(16:28))
-xlim([0 500]),ylim([0 5]);title('maxInstFR');
-
-figure, 
-subplot(1,2,1), hist(APamplitude(1:15))
-h = findobj(gca,'Type','patch');
-h.FaceColor = [1 0 0];
-xlim([50 100]),ylim([0 6]);title('APamplitude');
-subplot(1,2,2), hist(APamplitude(16:28))
-xlim([50 100]),ylim([0 6]);title('APamplitude');
-
-figure, 
-subplot(1,2,1), hist(latency(1:15))
-h = findobj(gca,'Type','patch');
-h.FaceColor = [1 0 0];
-xlim([50 450]),ylim([0 5]);title('Latency distributions');
-subplot(1,2,2), hist(latency(16:28))
-xlim([50 450]),ylim([0 5]);
-title('Latency distributions');
-
-% Make boxplots
-
+% Make boxplots for comparison
 %figure, set(gcf,'units','points','position',[100,100,1000,600]); %if I run it in lab
 figure, set(gcf,'units','points','position',[80,80,600,350]); %if I run it in my laptop
 subplot(2,3,1)
@@ -340,7 +301,6 @@ ylabel('Voltage (mV)'); title('AP amplitude');
 subplot(2,3,4)
 boxplot(APhalfwidth,cellType)
 ylabel('Time (ms)'); title('AP halfwidth');
-ylim([-2 3]);
 subplot(2,3,5)
 boxplot(maxtotFR,cellType)
 ylabel('Spikes/s'); title('max total firing rate');
@@ -359,9 +319,6 @@ saveas(gcf,'APPropertiesComparison.png');
 
 % Extract the variables from the data
 for i = 1:length(Data)
-    Cage(:,i) = Data{1,i}(1).Cage;
-    mouseID(:,i) = Data{1,i}(1).mouseID;
-    Date(:,i) = Data{1,i}(1).Date;
     Rin(:,i) = Data{1,i}(1).Rin;
 	Cm(:,i) = Data{1,i}(1).Cm;
 end
@@ -369,18 +326,14 @@ end
 resistance = [Rin;Cm];
 xlswrite('Resistance.xls',resistance);
 
-Parameters = horzcat(maxtotFR',APamplitude',APthreshold',Ihold',latency',Vrest');
-
-% Make vector with variable names
-
-Variables = char('maxtotFR','APamplitude','APthreshold','latency','Vrest');
+% Group parameters for PCA and make a variable with their names
+Parameters = horzcat(maxtotFR',APamplitude',APthreshold',sag',latency',Vrest',Rin',Cm');
+Variables = char('maxtotFR','APamplitude','APthreshold','sag','latency','Vrest','Rin','Cm');
 
 % 2) Run PCA analysis
-
 [coeff,score,latent,tsquared,explained,mu] = pca(Parameters);
 
 % 3) Plot the first two components
-
 figure, biplot(coeff(:,1:2),'scores',score(:,1:2),'Varlabels',Variables);
 
 figure, plot(score(:,1),score(:,2),'ro');
@@ -388,6 +341,7 @@ xlabel('1st Principal Component');
 ylabel('2nd Principal Component');
 title('PCA analysis');
 
+% Look at the variable explaines by the different components
 figure()
 pareto(explained)
 xlabel('Principal Component');

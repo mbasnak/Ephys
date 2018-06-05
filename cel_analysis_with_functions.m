@@ -71,9 +71,15 @@ threshold = 10; % define a threshold to look for AP
 [APlocation,APpeak,APthreshold,latency,APthrough,APhalfwidth,APamplitude,sweepnumberwithfirstAP] = FindAPProperties(pulseStart,pulseEnd,responses,threshold,peakLoc,peakMag);
 
     %% IV curve
+    
+for ii = 1:size(responses,2)
+    pulseV(ii) = median(responses{1,ii}(pulseStart:pulseEnd)); %calculate the voltage of the plateau, using the median of the round value of V during the pulse
+    currents(ii) = correctedPulses{1,ii}(10300); %measure the current during a specific point of the pulse given
+    DifCurrents(ii) = currents(ii) - correctedPulses{1,ii}(300); %add an extra correction, given that they start shifted from zero sometimes. Make it read the difference instead.   
+end
 
 % Plot the IV curve using the "plotIVcurve" function
-[pulseV,DifCurrents] = plotIVcurve(responses,pulseStart,pulseEnd,correctedPulses,0);
+[a] = plotIVcurve(pulseV,DifCurrents,monitor);
 
 %% Hyperpolarization parameters
 % Calculate the hypolarized steady state and the sag using the
