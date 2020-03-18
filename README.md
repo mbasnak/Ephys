@@ -1,5 +1,5 @@
-# Ephys
-Analysis for patch clamp data
+# Slice physiology code
+Analysis for patch clamp data that I recorded during my rotation in Bernardo Sabatini's lab.
 
 Individual cells + every cell pooled.
 
